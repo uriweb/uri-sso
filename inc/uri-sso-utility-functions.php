@@ -10,7 +10,7 @@
  * Include css
  */
 function _uri_sso_css() {
-	wp_register_style( 'uri-sso-css', plugins_url( '/css/uri-sso.css', __FILE__ ) );
+	wp_register_style( 'uri-sso-css', URI_SSO_URL . '/css/uri-sso.css' );
 	wp_enqueue_style( 'uri-sso-css' );
 }
 
