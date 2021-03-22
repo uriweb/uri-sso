@@ -23,6 +23,9 @@ include_once( URI_SSO_PATH . 'inc/uri-sso-utility-functions.php' );
 add_filter( 'show_password_fields', '__return_false' );
 add_filter( 'allow_password_reset', '__return_false' );
 
+// we only need custom css in certain circumstances @see uri_sso_login_message()
+// add_action( 'login_enqueue_scripts', 'uri_sso_css' );
+
 
 
 
@@ -34,12 +37,7 @@ function uri_sso_login_message( $message ) {
 	$username = _uri_sso_check_remote_user();
 	
 	if ( ! is_wp_error( $username ) ) {
-		// @todo make external stylesheet
-		echo '<style>';
-		echo 'form p, .user-pass-wrap { display: none; }';
-		echo 'form p.submit { display: block; }';
-		echo 'form p.submit .button-primary { float: none; display: block; width: 100%; font-size: 1.2rem; }';
-		echo '</style>';
+		_uri_sso_css();
 		return 'Hi, <span class="username">' . $username . '</span>. You‘re logged in with single sign on, click log in to continue.';
 	} else {
 		//echo '<pre>', print_r($_SERVER, TRUE), '</pre>';

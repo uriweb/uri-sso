@@ -1,0 +1,14 @@
+form p, .user-pass-wrap {
+	display: none;
+}
+
+form p.submit {
+	display: block;
+}
+
+form p.submit .button-primary {
+	display: block;
+	float: none;
+	font-size: 1.2rem;
+	width: 100%;
+}

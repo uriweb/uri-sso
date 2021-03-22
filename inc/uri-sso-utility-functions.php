@@ -7,6 +7,15 @@
 
 
 /**
+ * Include css
+ */
+function _uri_sso_css() {
+	wp_register_style( 'uri-sso-css', plugins_url( '/css/uri-sso.css', __FILE__ ) );
+	wp_enqueue_style( 'uri-sso-css' );
+}
+
+
+/**
  * Convenience function to go to the SSO login endpoint, then back to wp-admin
  * @return str
  */
