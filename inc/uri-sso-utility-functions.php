@@ -6,6 +6,23 @@
  */
 
 
+
+/**
+ * Wrapper for get_option 
+ * queries the network value first, if empty, queries the local value
+ * @param str $key the option name
+ * @param str $default a default value
+ * @return mixed
+ */
+function _uri_sso_get_option( $key, $default=FALSE ) {
+	$value = get_option( $key, $default );
+	if ( ! $value ) {
+		$value = get_network_option( NULL, $key, $default );
+	}
+	return $value;
+}
+
+
 /**
  * Include css
  */
@@ -32,9 +49,17 @@ function _uri_sso_change_login_button( $translated_text, $text, $domain ) {
  * @return str
  */
 function _uri_sso_get_login_url() {
-	$return_to = urlencode( get_admin_url() );
-	$url = '/mellon/login?ReturnTo=' . $return_to;
-	return $url;
+	$return_to = '?ReturnTo=' . urlencode( get_admin_url() );
+
+	$url = _uri_sso_get_option( 'uri_sso_login_url', '/mellon/login' );
+	
+	$url = _uri_sso_swap_tokens( $url );
+	if( FALSE === strpos( '?', $url ) ) {
+		$return_to = '?' . $return_to;
+	} else {
+		$return_to = '&' . $return_to;
+	}
+	return $url . $return_to;
 }
 
 
@@ -46,7 +71,7 @@ function _uri_sso_get_login_url() {
  *  otherwise, array of all settings
  */
 function _uri_sso_get_settings( $key, $default=NULL ) {
-	$settings = get_option( 'uri_sso', array() );
+	$settings = _uri_sso_get_option( 'uri_sso', array() );
 	if ( ! empty ( $key ) ) {
 		if( array_key_exists( $key, $settings ) ) {
 			return $settings[$key];
@@ -87,14 +112,14 @@ function _uri_sso_check_remote_user() {
  * @return arr
  */
 function _uri_sso_get_fallback_variables() {
-	$keys = array('REMOTE_USER', 'REDIRECT_REMOTE_USER', 'URI_LDAP_uid');
-	$fallback_keys = _uri_sso_get_settings( 'fallback_variables' );
-	if ( ! empty( $fallback_keys ) ) {
-		$fallback_keys = explode(',', $fallback_keys);
-		$fallback_keys = array_map( 'trim', $fallback_keys );
-		$keys = array_merge($fallback_keys, $keys);
+	$keys = _uri_sso_get_option( 'user_variables', 'REMOTE_USER, REDIRECT_REMOTE_USER, URI_LDAP_uid' );
+
+	if ( ! empty( $keys ) ) {
+		$keys = explode(',', $keys);
+		$keys = array_map( 'trim', $keys );
 	}
-	return $keys;
+
+	return array_unique( $keys );
 }
 
 /**
@@ -144,3 +169,23 @@ function _uri_sso_get_name() {
 // 		'affiliation' => isset( $_SERVER['URI_LDAP_employeetype'] ) ? $_SERVER['URI_LDAP_employeetype'] : '', // staff
 	);
 }
+
+/**
+ * Replace tokens permitted in the admin screen
+ * @param str $str the input
+ * @return str
+ */
+function _uri_sso_swap_tokens( $str ) {
+
+	$tokens = array(
+		'host' => $_SERVER['HTTP_HOST'],
+		'site' => home_url()
+	);
+
+	foreach ($tokens as $token => $value) {
+		$str = str_replace('%' . $token . '%', $value, $str);
+	}
+
+	return $str;
+}
+

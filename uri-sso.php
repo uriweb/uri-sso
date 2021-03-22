@@ -19,12 +19,12 @@ define( 'URI_SSO_URL', str_replace('/inc', '/', plugins_url( 'inc', __FILE__ ) )
 // include the convenience functions
 include_once( URI_SSO_PATH . 'inc/uri-sso-utility-functions.php' );
 
+// include the convenience functions
+include_once( URI_SSO_PATH . 'inc/uri-sso-settings.php' );
+
 
 add_filter( 'show_password_fields', '__return_false' );
 add_filter( 'allow_password_reset', '__return_false' );
-
-// we only need custom css in certain circumstances @see uri_sso_login_message()
-// add_action( 'login_enqueue_scripts', 'uri_sso_css' );
 
 
 
