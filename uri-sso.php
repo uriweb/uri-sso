@@ -34,7 +34,13 @@ function uri_sso_login_message( $message ) {
 	$username = _uri_sso_check_remote_user();
 	
 	if ( ! is_wp_error( $username ) ) {
-		return 'Hi, ' . $username . '. You‘re logged in with single sign on, click log in to continue.';
+		// @todo make external stylesheet
+		echo '<style>';
+		echo 'form p, .user-pass-wrap { display: none; }';
+		echo 'form p.submit { display: block; }';
+		echo 'form p.submit .button-primary { float: none; display: block; width: 100%; font-size: 1.2rem; }';
+		echo '</style>';
+		return 'Hi, <span class="username">' . $username . '</span>. You‘re logged in with single sign on, click log in to continue.';
 	} else {
 		//echo '<pre>', print_r($_SERVER, TRUE), '</pre>';
 		return 'Uh oh, you are not logged in with SSO.';
@@ -95,15 +101,6 @@ add_filter( 'authenticate', 'uri_sso_authenticate', 10, 3 );
 
 
 /**
- * Send the user to site's front page when logging out.
- */
-function uri_sso_logout() {
-// 	wp_redirect( home_url() );
-// 	exit;
-}
-add_action( 'wp_logout', 'uri_sso_logout' );
-
-/**
  * Send the user to an appropriate page after logging in
  */
 function uri_sso_login_redirect( $url, $request, $user ) {
@@ -121,8 +118,14 @@ function uri_sso_login_redirect( $url, $request, $user ) {
 }
 add_filter( 'login_redirect', 'uri_sso_login_redirect', 10, 3 );
 
+
 /**
- * Filters the login URL.
+ The rest of this document contains inactive hooks for reference
+**/
+
+
+/**
+ * Changes the login URL.
  *
  * @param string $login_url    The login URL. Not HTML-encoded.
  * @param string $redirect     The path to redirect to on login, if supplied.
@@ -140,14 +143,18 @@ function uri_sso_custom_login_url( $login_url, $redirect, $force_reauth ){
  * Fires when a visitor goes to wp-login.php
  */
 function uri_sso_handle_default_login_page() {
-	echo '<style>';
-	echo 'p, .user-pass-wrap { display: none; }';
-	echo 'p.submit { display: block; }';
-	echo 'p.submit .button-primary { float: none; display: block; width: 100%; font-size: 1.2rem; }';
-	echo '</style>';
 //	echo '<pre>remote user: ', print_r( $_SERVER['REMOTE_USER'], TRUE ), '</pre>';
 // 	wp_redirect( _uri_sso_get_login_url() );
 // 	exit;
 }
-add_action( 'login_init', 'uri_sso_handle_default_login_page' );
+//add_action( 'login_init', 'uri_sso_handle_default_login_page' );
+
+/**
+ * Send the user to site's front page when logging out.
+ */
+function uri_sso_logout() {
+	wp_redirect( home_url() );
+	exit;
+}
+//add_action( 'wp_logout', 'uri_sso_logout' );
 
