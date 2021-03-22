@@ -38,6 +38,7 @@ function uri_sso_login_message( $message ) {
 	
 	if ( ! is_wp_error( $username ) ) {
 		_uri_sso_css();
+		add_filter( 'gettext', '_uri_sso_change_login_button', 20, 3 );
 		return 'Hi, <span class="username">' . $username . '</span>. You‘re logged in with single sign on, click log in to continue.';
 	} else {
 		//echo '<pre>', print_r($_SERVER, TRUE), '</pre>';
@@ -54,7 +55,7 @@ add_filter( 'login_message', 'uri_sso_login_message' );
  */
 function uri_sso_login_messages( $messages ) {
 	if ( '%09You+are+now+logged+out.%3Cbr+%2F%3E%0A' == urlencode( $messages ) ) {
-		$messages = ' You are now logged out of WordPress.<br />' . "\n";
+		$messages = "\t" . 'You are now logged out of WordPress.<br />' . "\n";
 // 		$return = urlencode( home_url() );
 // 		$messages .= '<a href="https://staging.web.uri.edu/mellon/logout?ReturnTo=' . $return . '">Log out of the web server</a>.';
 	}

@@ -14,6 +14,18 @@ function _uri_sso_css() {
 	wp_enqueue_style( 'uri-sso-css' );
 }
 
+/**
+ * Change "Log In" to "Log Back In" on wp-login via the WP translation mechanism
+ * @return str
+ */
+function _uri_sso_change_login_button( $translated_text, $text, $domain ) {
+	if ( 'Log In' === $text ) {
+		$translated_text = __( 'Log Back In' , 'uri' );
+	}
+	return $translated_text;
+}
+
+
 
 /**
  * Convenience function to go to the SSO login endpoint, then back to wp-admin
@@ -24,6 +36,8 @@ function _uri_sso_get_login_url() {
 	$url = '/mellon/login?ReturnTo=' . $return_to;
 	return $url;
 }
+
+
 
 /**
  * Query stored settings from the database
