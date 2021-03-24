@@ -30,7 +30,7 @@ function uri_sso_register_settings() {
 	);
 
 	add_settings_field(
-		'uri_sso_login_url',
+		'login_url',
 		'Login URL',
 		'_uri_sso_login_url_field',
 		$page,
@@ -39,7 +39,7 @@ function uri_sso_register_settings() {
 	);
 
 	add_settings_field(
-		'uri_sso_logout_url',
+		'logout_url',
 		'Logout URL',
 		'_uri_sso_logout_url_field',
 		$page,
@@ -49,13 +49,40 @@ function uri_sso_register_settings() {
 
 	add_settings_field(
 		'user_variables',
-		'User variables',
-		'_uri_sso_user_keys_field',
+		'User Variables',
+		'_uri_sso_user_variables_field',
 		$page,
 		$section,
-		array('label_for' => 'fallback_variables')
+		array('label_for' => 'uri_sso_user_variables')
 	);
 
+	add_settings_field(
+		'default_role',
+		'Default Role',
+		'_uri_sso_default_role_field',
+		$page,
+		$section,
+		array('label_for' => 'uri_sso_default_role')
+	);
+
+	add_settings_field(
+		'first_name_variable',
+		'First Name Variable',
+		'_uri_sso_first_name_variable_field',
+		$page,
+		$section,
+		array('label_for' => 'uri_sso_first_name')
+	);
+
+	add_settings_field(
+		'last_name_variable',
+		'Last Name Variable',
+		'_uri_sso_last_name_variable_field',
+		$page,
+		$section,
+		array('label_for' => 'uri_sso_last_name')
+	);
+	
 }
 add_action( 'admin_init', 'uri_sso_register_settings' );
 
@@ -129,8 +156,8 @@ function _get_text_field( $setting, $help_text, $size=60 ) {
  */
 function _uri_sso_login_url_field() {
 	$help_text = 'Enter the SSO login URL.<br />
-	Default: <code>%base%/mellon/login</code>';
-	echo _get_text_field( 'uri_sso_login_url', $help_text );
+	Default: <code>' .  _uri_sso_default_settings('login_url') . '</code>';
+	echo _get_text_field( 'login_url', $help_text );
 }
 
 /**
@@ -138,17 +165,54 @@ function _uri_sso_login_url_field() {
  */
 function _uri_sso_logout_url_field() {
 	$help_text = 'Enter the SSO logout URL to clear session cookies on the web server.<br />
-	Default: <code>%base%/mellon/logout</code>';
-	echo _get_text_field( 'uri_sso_logout_url', $help_text );
+	Default: <code>' .  _uri_sso_default_settings('logout_url') . '</code>';
+	echo _get_text_field( 'logout_url', $help_text );
 }
 
 /**
  * Display the alternate $variables keys field.
  */
-function _uri_sso_user_keys_field() {
+function _uri_sso_user_variables_field() {
 	$help_text = 'A comma-separated list of <code>$_SERVER</code> variables to determine the username.<br />  
-	Default: <code>REMOTE_USER, REDIRECT_REMOTE_USER, URI_LDAP_uid</code><br />';
+	Default: <code>' .  _uri_sso_default_settings('user_variables') . '</code><br />';
 	echo _get_text_field( 'user_variables', $help_text );
+}
+
+/**
+ * Display the default role field.
+ */
+function _uri_sso_default_role_field() {
+	$roles = get_editable_roles();
+
+	$value = _uri_sso_get_settings( 'default_role', _uri_sso_default_settings('default_role') );
+	echo '<select name="uri_sso[default_role]" id="default_role">';
+		foreach( $roles as $key => $role ) {
+			$selected = ( $key == $value ) ? ' selected' : '';
+			echo '<option value="' . $key . '" ' . $selected . '>' . $role['name'] . '</option>';
+		}
+	echo '</select>';
+	
+	$help_text = 'The role assigned to users who authenticate but don‘t have a WordPress account.<br />  
+	Default: <code>' .  _uri_sso_default_settings('default_role') . '</code><br />';
+	echo '<p>' . $help_text . '</p>';	
+}
+
+/**
+ * Display the first name field.
+ */
+function _uri_sso_first_name_variable_field() {
+	$help_text = 'The <code>$_SERVER</code> variable to determine the first name.<br />  
+	Default: <code>' .  _uri_sso_default_settings('first_name_variable') . '</code><br />';
+	echo _get_text_field( 'first_name_variable', $help_text );
+}
+
+/**
+ * Display the last name field.
+ */
+function _uri_sso_last_name_variable_field() {
+	$help_text = 'The <code>$_SERVER</code> variable to determine the last name.<br />  
+	Default: <code>' .  _uri_sso_default_settings('last_name_variable') . '</code><br />';
+	echo _get_text_field( 'last_name_variable', $help_text );
 }
 
 /**

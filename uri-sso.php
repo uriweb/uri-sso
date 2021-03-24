@@ -116,7 +116,7 @@ add_filter( 'authenticate', 'uri_sso_authenticate', 10, 3 );
 /**
  * Send the user to an appropriate page after logging in
  */
-function uri_sso_login_redirect( $url, $request, $user ) {
+function uri_sso_login_redirect( $redirect_to, $requested_redirect_to, $user ) {
 	
 	if ( ! is_wp_error( $user ) ) {
 		if ( in_array( 'subscriber', (array) $user->roles ) ) {
@@ -147,7 +147,22 @@ add_filter( 'login_redirect', 'uri_sso_login_redirect', 10, 3 );
  * @return string
  */
 function uri_sso_custom_login_url( $login_url, $redirect, $force_reauth ){
-	return _uri_sso_get_login_url();
+	echo '<pre>login_url: ', print_r( $login_url, TRUE ), '</pre>';
+	echo '<pre>redirect: ', print_r( $redirect, TRUE ), '</pre>';
+	echo '<pre>force_reauth: ', print_r( $force_reauth, TRUE ), '</pre>';
+
+	$username = _uri_sso_check_remote_user();
+	$users = get_users( array( 'login' => $username, 'blog_id' => 0 ) );		
+	if( 1 === count( $users ) && 'WP_User' === get_class( $users[0] ) ) {
+		$user = $users[0];
+	}
+	$role_based_destination_url =  uri_sso_login_redirect( $login_url, $redirect, $user );
+	echo '<pre>role_based_destination_url: ', print_r( $role_based_destination_url, TRUE ), '</pre>';
+	
+	$new_login_url = add_query_arg( 'redirect_to', urlencode( $role_based_destination_url ), $login_url );
+	echo '<pre>new_login_url: ', print_r( $new_login_url, TRUE ), '</pre>';
+
+	return $login_url;
 }
 //add_filter( 'login_url', 'uri_sso_custom_login_url', 10, 3 );
 

@@ -7,21 +7,6 @@
 
 
 
-/**
- * Wrapper for get_option 
- * queries the network value first, if empty, queries the local value
- * @param str $key the option name
- * @param str $default a default value
- * @return mixed
- */
-function _uri_sso_get_option( $key, $default=FALSE ) {
-	$value = get_option( $key, $default );
-	if ( ! $value ) {
-		$value = get_network_option( NULL, $key, $default );
-	}
-	return $value;
-}
-
 
 /**
  * Include css
@@ -51,7 +36,7 @@ function _uri_sso_change_login_button( $translated_text, $text, $domain ) {
 function _uri_sso_get_login_url() {
 	$return_to = '?ReturnTo=' . urlencode( get_admin_url() );
 
-	$url = _uri_sso_get_option( 'uri_sso_login_url', '/mellon/login' );
+	$url = _uri_sso_get_option( 'uri_sso_login_url', _uri_sso_default_settings('login_url') );
 	
 	$url = _uri_sso_swap_tokens( $url );
 	if( FALSE === strpos( '?', $url ) ) {
@@ -62,6 +47,21 @@ function _uri_sso_get_login_url() {
 	return $url . $return_to;
 }
 
+
+/**
+ * Wrapper for get_option 
+ * queries the network value first, if empty, queries the local value
+ * @param str $key the option name
+ * @param str $default a default value
+ * @return mixed
+ */
+function _uri_sso_get_option( $key, $default=FALSE ) {
+	$value = get_option( $key, $default );
+	if ( ! $value ) {
+		$value = get_network_option( NULL, $key, $default );
+	}
+	return $value;
+}
 
 
 /**
@@ -82,6 +82,32 @@ function _uri_sso_get_settings( $key, $default=NULL ) {
 		return $settings;
 	}
 }
+
+/**
+ * Query stored settings from the database
+ * @param str $key the specific setting to return
+ * @return mixed if $key is set, it returns the value of that setting, 
+ *  otherwise, array of all settings
+ */
+function _uri_sso_default_settings( $key ) {
+	$default_settings = array(
+		'login_url' => '%base%/mellon/login',
+		'logout_url' => '%base%/mellon/logout',
+		'user_variables' => 'REMOTE_USER, REDIRECT_REMOTE_USER, URI_LDAP_uid',
+		'default_role' => 'subscriber',
+		'first_name_variable' => 'URI_LDAP_displayname',
+		'last_name_variable' => 'URI_LDAP_sn',
+	);
+	
+	if ( ! empty ( $key ) ) {
+		if( array_key_exists( $key, $default_settings ) ) {
+			return $default_settings[$key];
+		} else {
+			return $default_settings;
+		}
+	}
+}
+
 
 /**
  * Check the value provided by the server.
@@ -112,7 +138,7 @@ function _uri_sso_check_remote_user() {
  * @return arr
  */
 function _uri_sso_get_fallback_variables() {
-	$keys = _uri_sso_get_option( 'user_variables', 'REMOTE_USER, REDIRECT_REMOTE_USER, URI_LDAP_uid' );
+	$keys = _uri_sso_get_option( 'user_variables', _uri_sso_default_settings('user_variables') );
 
 	if ( ! empty( $keys ) ) {
 		$keys = explode(',', $keys);
@@ -132,6 +158,9 @@ function _uri_sso_create_user($username) {
 	$user = get_user_by( 'id', $user_id );
 	$user_metadata = _uri_sso_get_name();
 	// @todo add user's display name and default role https://developer.wordpress.org/reference/functions/wp_update_user/
+	// $role = _uri_sso_get_settings( 'default_role', _uri_sso_default_settings('default_role') );
+	// $first_name = _uri_sso_get_settings( 'first_name_variable', _uri_sso_default_settings('first_name_variable') );
+	// $last_name = _uri_sso_get_settings( 'last_name_variable', _uri_sso_default_settings('last_name_variable') );
 	
 	return $user;
 }
