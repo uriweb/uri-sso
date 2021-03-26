@@ -2,7 +2,7 @@ form p, .user-pass-wrap {
 	display: none;
 }
 
-form p.submit {
+form p.submit, form p.admin-email__details {
 	display: block;
 }
 

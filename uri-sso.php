@@ -1,12 +1,18 @@
 <?php
-/*
-Plugin Name: URI SSO
-Plugin URI: http://www.uri.edu
-Description: authenticate users against URI's SSO implementation
-Version: 0.1
-Author: John Pennypacker
-Author URI: 
-*/
+/**
+ * Plugin Name: URI SSO
+ * Plugin URI: http://www.uri.edu
+ * Description: authenticate users against URI's SSO implementation
+ * Version: 0.1
+ * Author: URI Web Communications
+ * Author URI: 
+ *
+ * @author: John Pennypacker <jpennypacker@uri.edu>
+ * @author: Brandon Fuller <bjcfuller@uri.edu>
+ */
+
+/** absorbs Brandon's awesome login screen styling from uri-admin-login **/
+/** borrows a good bit from http://danieltwc.com/2011/http-authentication-4-0/ **/
 
 
 // Block direct requests
@@ -22,10 +28,15 @@ include_once( URI_SSO_PATH . 'inc/uri-sso-utility-functions.php' );
 // include the convenience functions
 include_once( URI_SSO_PATH . 'inc/uri-sso-settings.php' );
 
+// include the log in screen customizations
+include_once( URI_SSO_PATH . 'inc/uri-sso-login-screen.php' );
 
+// remove default WP auth filters
+remove_all_filters( 'authenticate' );
+
+// hide password fields on the profile pages
 add_filter( 'show_password_fields', '__return_false' );
 add_filter( 'allow_password_reset', '__return_false' );
-
 
 
 
@@ -37,12 +48,12 @@ function uri_sso_login_message( $message ) {
 	$username = _uri_sso_check_remote_user();
 	
 	if ( ! is_wp_error( $username ) ) {
-		_uri_sso_css();
+		_uri_sso_has_session_css();
 		add_filter( 'gettext', '_uri_sso_change_login_button', 20, 3 );
-		return 'Hi, <span class="username">' . $username . '</span>. You‘re logged in with single sign on, click log in to continue.';
+		return '<p>Hi, <span class="username">' . $username . '</span>. You‘re logged in with single sign on, but not logged into WordPress.</p>';
 	} else {
-		//echo '<pre>', print_r($_SERVER, TRUE), '</pre>';
-		return 'Uh oh, you are not logged in with SSO.';
+		// echo '<pre>', print_r($_SERVER, TRUE), '</pre>';
+		// return 'Uh oh, you are not logged in with SSO.';
 	}
 
 	return $message;
@@ -56,21 +67,16 @@ add_filter( 'login_message', 'uri_sso_login_message' );
 function uri_sso_login_messages( $messages ) {
 	if ( '%09You+are+now+logged+out.%3Cbr+%2F%3E%0A' == urlencode( $messages ) ) {
 		$messages = "\t" . 'You are now logged out of WordPress.<br />' . "\n";
-// 		$return = urlencode( home_url() );
-// 		$messages .= '<a href="https://staging.web.uri.edu/mellon/logout?ReturnTo=' . $return . '">Log out of the web server</a>.';
+
+		if ( ! is_wp_error( _uri_sso_check_remote_user() ) ) {
+			$return = urlencode( home_url() );
+			$messages .= '<a href="https://staging.web.uri.edu/mellon/logout?ReturnTo=' . $return . '">Log out of the web server</a>.';
+		}
 	}
 	return $messages;
 }
 add_filter( 'login_messages', 'uri_sso_login_messages', 20, 1 );
 
-
-/**
- * Modify the forgot password link
- */
-function uri_sso_lost_password( $lostpassword_url, $redirect ) {
-	return 'https://password.uri.edu';
-}
-add_filter( 'lostpassword_url', 'uri_sso_lost_password', 10, 2 );
 
 /**
  * Authenticate the user using the environment variables.
@@ -89,10 +95,8 @@ function uri_sso_authenticate( $user, $username, $password ) {
 	// echo '<pre>', print_r( $username, TRUE ), '</pre>';
 
 	if ( is_wp_error( $username ) ) {
-		wp_redirect( _uri_sso_get_login_url() );
-		exit;
-		remove_action( 'authenticate', 'wp_authenticate_username_password', 20 );
-		remove_action( 'authenticate', 'wp_authenticate_email_password', 20 );
+// 		wp_redirect( _uri_sso_get_login_url() );
+// 		exit;
 		return $username;
 	} else {	
 		// check if the username has a WP account; blog_id 0 is for multisite
@@ -108,7 +112,6 @@ function uri_sso_authenticate( $user, $username, $password ) {
 
 	return $user;
 }
-remove_all_filters( 'authenticate' );
 add_filter( 'authenticate', 'uri_sso_authenticate', 10, 3 );
 // add_filter( 'wp_authenticate_user', 'uri_sso_authenticate', 10, 3 );
 
@@ -133,56 +136,10 @@ add_filter( 'login_redirect', 'uri_sso_login_redirect', 10, 3 );
 
 
 /**
- The rest of this document contains inactive hooks for reference
-**/
-
-
-/**
- * Changes the login URL.
- *
- * @param string $login_url    The login URL. Not HTML-encoded.
- * @param string $redirect     The path to redirect to on login, if supplied.
- * @param bool   $force_reauth Whether to force reauthorization, even if a cookie is present.
- *
- * @return string
+ * Remove the reauth=1 parameter from the login URL, if applicable.
  */
-function uri_sso_custom_login_url( $login_url, $redirect, $force_reauth ){
-	echo '<pre>login_url: ', print_r( $login_url, TRUE ), '</pre>';
-	echo '<pre>redirect: ', print_r( $redirect, TRUE ), '</pre>';
-	echo '<pre>force_reauth: ', print_r( $force_reauth, TRUE ), '</pre>';
-
-	$username = _uri_sso_check_remote_user();
-	$users = get_users( array( 'login' => $username, 'blog_id' => 0 ) );		
-	if( 1 === count( $users ) && 'WP_User' === get_class( $users[0] ) ) {
-		$user = $users[0];
-	}
-	$role_based_destination_url =  uri_sso_login_redirect( $login_url, $redirect, $user );
-	echo '<pre>role_based_destination_url: ', print_r( $role_based_destination_url, TRUE ), '</pre>';
-	
-	$new_login_url = add_query_arg( 'redirect_to', urlencode( $role_based_destination_url ), $login_url );
-	echo '<pre>new_login_url: ', print_r( $new_login_url, TRUE ), '</pre>';
-
+function uri_sso_automatic_reauth( $login_url ) {
+	$login_url = remove_query_arg( 'reauth', $login_url );
 	return $login_url;
 }
-//add_filter( 'login_url', 'uri_sso_custom_login_url', 10, 3 );
-
-
-/**
- * Fires when a visitor goes to wp-login.php
- */
-function uri_sso_handle_default_login_page() {
-//	echo '<pre>remote user: ', print_r( $_SERVER['REMOTE_USER'], TRUE ), '</pre>';
-// 	wp_redirect( _uri_sso_get_login_url() );
-// 	exit;
-}
-//add_action( 'login_init', 'uri_sso_handle_default_login_page' );
-
-/**
- * Send the user to site's front page when logging out.
- */
-function uri_sso_logout() {
-	wp_redirect( home_url() );
-	exit;
-}
-//add_action( 'wp_logout', 'uri_sso_logout' );
-
+add_filter( 'login_url', 'uri_sso_automatic_reauth' );

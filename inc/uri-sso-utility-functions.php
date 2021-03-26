@@ -7,17 +7,43 @@
 
 
 
-
 /**
- * Include css
+ * Default values for the admin settings.
+ * @param str $key the specific setting to return
+ * @return mixed if $key is set, it returns the value of that setting, 
+ *  otherwise, array of all settings
  */
-function _uri_sso_css() {
-	wp_register_style( 'uri-sso-css', URI_SSO_URL . '/css/uri-sso.css' );
-	wp_enqueue_style( 'uri-sso-css' );
+function _uri_sso_default_settings( $key ) {
+	$default_settings = array(
+		'login_url' => '%host%/mellon/login',
+		'logout_url' => '%host%/mellon/logout',
+		'user_variables' => 'REMOTE_USER, REDIRECT_REMOTE_USER, URI_LDAP_uid',
+		'default_role' => 'subscriber',
+		'first_name_variable' => 'URI_LDAP_displayname',
+		'last_name_variable' => 'URI_LDAP_sn',
+	);
+	
+	if ( ! empty ( $key ) ) {
+		if( array_key_exists( $key, $default_settings ) ) {
+			return $default_settings[$key];
+		} else {
+			return $default_settings;
+		}
+	}
 }
 
+
 /**
- * Change "Log In" to "Log Back In" on wp-login via the WP translation mechanism
+ * Include css when the user has an active session, but isn't logged into WordPress.
+ */
+function _uri_sso_has_session_css() {
+	wp_register_style( 'uri-sso-has-session', URI_SSO_URL . '/css/uri-sso-has-session.css' );
+	wp_enqueue_style( 'uri-sso-has-session' );
+}
+
+
+/**
+ * Change "Log In" to "Log Back In" on wp-login via the WP translation mechanism.
  * @return str
  */
 function _uri_sso_change_login_button( $translated_text, $text, $domain ) {
@@ -28,28 +54,30 @@ function _uri_sso_change_login_button( $translated_text, $text, $domain ) {
 }
 
 
-
 /**
- * Convenience function to go to the SSO login endpoint, then back to wp-admin
+ * Convenience function to go to the SSO login endpoint, then back to wp-admin.
  * @return str
  */
 function _uri_sso_get_login_url() {
-	$return_to = '?ReturnTo=' . urlencode( get_admin_url() );
+	$return_to = 'ReturnTo=' . urlencode( get_admin_url() );
 
 	$url = _uri_sso_get_option( 'uri_sso_login_url', _uri_sso_default_settings('login_url') );
 	
-	$url = _uri_sso_swap_tokens( $url );
+	list( $protocol ) = explode( '/', $_SERVER['SERVER_PROTOCOL'] );
+	$url = strtolower( $protocol ) . '://' . _uri_sso_swap_tokens( $url );
+	
 	if( FALSE === strpos( '?', $url ) ) {
 		$return_to = '?' . $return_to;
 	} else {
 		$return_to = '&' . $return_to;
 	}
+
 	return $url . $return_to;
 }
 
 
 /**
- * Wrapper for get_option 
+ * Wrapper for get_option.
  * queries the network value first, if empty, queries the local value
  * @param str $key the option name
  * @param str $default a default value
@@ -57,7 +85,7 @@ function _uri_sso_get_login_url() {
  */
 function _uri_sso_get_option( $key, $default=FALSE ) {
 	$value = get_option( $key, $default );
-	if ( ! $value ) {
+	if ( $default === $value ) {
 		$value = get_network_option( NULL, $key, $default );
 	}
 	return $value;
@@ -65,7 +93,7 @@ function _uri_sso_get_option( $key, $default=FALSE ) {
 
 
 /**
- * Query stored settings from the database
+ * Query stored settings from the database.
  * @param str $key the specific setting to return
  * @return mixed if $key is set, it returns the value of that setting, 
  *  otherwise, array of all settings
@@ -80,31 +108,6 @@ function _uri_sso_get_settings( $key, $default=NULL ) {
 		}
 	} else {
 		return $settings;
-	}
-}
-
-/**
- * Query stored settings from the database
- * @param str $key the specific setting to return
- * @return mixed if $key is set, it returns the value of that setting, 
- *  otherwise, array of all settings
- */
-function _uri_sso_default_settings( $key ) {
-	$default_settings = array(
-		'login_url' => '%base%/mellon/login',
-		'logout_url' => '%base%/mellon/logout',
-		'user_variables' => 'REMOTE_USER, REDIRECT_REMOTE_USER, URI_LDAP_uid',
-		'default_role' => 'subscriber',
-		'first_name_variable' => 'URI_LDAP_displayname',
-		'last_name_variable' => 'URI_LDAP_sn',
-	);
-	
-	if ( ! empty ( $key ) ) {
-		if( array_key_exists( $key, $default_settings ) ) {
-			return $default_settings[$key];
-		} else {
-			return $default_settings;
-		}
 	}
 }
 
@@ -156,8 +159,6 @@ function _uri_sso_create_user($username) {
 	$email = _uri_sso_get_email( $username );
 	$role = _uri_sso_get_settings( 'default_role', _uri_sso_default_settings('default_role') );
 	
-//	$user_id = wp_create_user( $username, wp_generate_password(), $email );
-	
 	$user_metadata = _uri_sso_get_name();
 	
 	$userdata = array(
@@ -178,7 +179,6 @@ function _uri_sso_create_user($username) {
 	} else {
 		// @todo: create error message for first time users 
 	}
-
 
 }
 
@@ -230,8 +230,10 @@ function _uri_sso_get_name() {
  */
 function _uri_sso_swap_tokens( $str ) {
 
+	list( $protocol ) = explode( '/', $_SERVER['SERVER_PROTOCOL'] );
+	
 	$tokens = array(
-		'host' => $_SERVER['HTTP_HOST'],
+		'host' => strtolower( $protocol ) . '://' . $_SERVER['HTTP_HOST'],
 		'site' => home_url()
 	);
 
