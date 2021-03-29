@@ -119,9 +119,9 @@ function _uri_sso_get_settings( $key, $default=NULL ) {
 function _uri_sso_check_remote_user() {
 	$username = NULL;
 
-	$fallbacks = _uri_sso_get_fallback_variables();
+	$user_variables = array_reverse( _uri_sso_get_user_variables() );
 
-	foreach ( $fallbacks as $v ) {
+	foreach ( $user_variables as $v ) {
 		if ( ! empty( $_SERVER[$v] ) ) {
 			$username = $_SERVER[$v];
 		}
@@ -140,7 +140,7 @@ function _uri_sso_check_remote_user() {
  * Defaults are REMOTE_USER, REDIRECT_REMOTE_USER, and URI_LDAP_uid. 
  * @return arr
  */
-function _uri_sso_get_fallback_variables() {
+function _uri_sso_get_user_variables() {
 	$keys = _uri_sso_get_option( 'user_variables', _uri_sso_default_settings('user_variables') );
 
 	if ( ! empty( $keys ) ) {
