@@ -13,22 +13,47 @@
  * @return mixed if $key is set, it returns the value of that setting, 
  *  otherwise, array of all settings
  */
-function _uri_sso_default_settings( $key ) {
+function uri_sso_default_settings( $key='' ) {
 	$default_settings = array(
+		'use_sso' => FALSE,
 		'login_url' => '%host%/mellon/login',
 		'logout_url' => '%host%/mellon/logout',
-		'user_variables' => 'REMOTE_USER, REDIRECT_REMOTE_USER, URI_LDAP_uid',
+		'user_variables' => 'REMOTE_USER, REDIRECT_REMOTE_USER, URI_AZURESSO_uri_username',
 		'default_role' => 'subscriber',
-		'first_name_variable' => 'URI_LDAP_displayname',
-		'last_name_variable' => 'URI_LDAP_sn',
+		'first_name_variable' => 'URI_AZURESSO_uri_givenname, URI_LDAP_displayname',
+		'last_name_variable' => 'URI_AZURESSO_uri_surname, URI_LDAP_sn',
 	);
 	
 	if ( ! empty ( $key ) ) {
 		if( array_key_exists( $key, $default_settings ) ) {
 			return $default_settings[$key];
 		} else {
-			return $default_settings;
+			return FALSE;
 		}
+	} else {
+		return $default_settings;
+	}
+}
+
+/**
+ * Query stored settings from the database.
+ * @param str $key the specific setting to return
+ * @return mixed if $key is set, it returns the value of that setting, 
+ *  otherwise, array of all settings
+ */
+function uri_sso_get_settings( $key, $default=NULL ) {
+	if ( NULL === $default ) {
+		$default = uri_sso_default_settings( $key );
+	}
+	$settings = _uri_sso_get_option( 'uri_sso', uri_sso_default_settings() );
+	if ( ! empty ( $key ) ) {
+		if( array_key_exists( $key, $settings ) ) {
+			return $settings[$key];
+		} else {
+			return $default;
+		}
+	} else {
+		return $settings;
 	}
 }
 
@@ -61,7 +86,7 @@ function _uri_sso_change_login_button( $translated_text, $text, $domain ) {
 function _uri_sso_get_login_url() {
 	$return_to = 'ReturnTo=' . urlencode( get_admin_url() );
 
-	$url = _uri_sso_get_option( 'uri_sso_login_url', _uri_sso_default_settings('login_url') );
+	$url = uri_sso_get_settings( 'login_url' );
 	
 	list( $protocol ) = explode( '/', $_SERVER['SERVER_PROTOCOL'] );
 	$url = strtolower( $protocol ) . '://' . _uri_sso_swap_tokens( $url );
@@ -79,6 +104,7 @@ function _uri_sso_get_login_url() {
 /**
  * Wrapper for get_option.
  * queries the network value first, if empty, queries the local value
+ * @see uri_sso_get_settings()
  * @param str $key the option name
  * @param str $default a default value
  * @return mixed
@@ -92,24 +118,6 @@ function _uri_sso_get_option( $key, $default=FALSE ) {
 }
 
 
-/**
- * Query stored settings from the database.
- * @param str $key the specific setting to return
- * @return mixed if $key is set, it returns the value of that setting, 
- *  otherwise, array of all settings
- */
-function _uri_sso_get_settings( $key, $default=NULL ) {
-	$settings = _uri_sso_get_option( 'uri_sso', array() );
-	if ( ! empty ( $key ) ) {
-		if( array_key_exists( $key, $settings ) ) {
-			return $settings[$key];
-		} else {
-			return $default;
-		}
-	} else {
-		return $settings;
-	}
-}
 
 
 /**
@@ -117,15 +125,8 @@ function _uri_sso_get_settings( $key, $default=NULL ) {
  * @return mixed
  */
 function _uri_sso_check_remote_user() {
-	$username = NULL;
 
-	$user_variables = array_reverse( _uri_sso_get_user_variables() );
-
-	foreach ( $user_variables as $v ) {
-		if ( ! empty( $_SERVER[$v] ) ) {
-			$username = $_SERVER[$v];
-		}
-	}
+	$username = _uri_sso_get_environment_variable( 'user_variables' );
 
 	if ( NULL === $username ) {
 		$message = '<strong>ERROR</strong>: No SSO session found.';
@@ -136,12 +137,36 @@ function _uri_sso_check_remote_user() {
 }
 
 /**
- * Return the list of environment variables thatm may contain a username. 
- * Defaults are REMOTE_USER, REDIRECT_REMOTE_USER, and URI_LDAP_uid. 
+ * Checks for a value in the environment variables and returns it.
+ * @param str $key is the name of the variable that we're looking for 
+ * @see uri_sso_default_settings
+ * @param str $default can be used to override the default output when a value doens't exist.
+ * @return str
+ */
+function _uri_sso_get_environment_variable( $key, $default=NULL ) {
+	$output = $default;
+
+	$keys = array_reverse( _uri_sso_get_user_variables( $key ) );
+
+	foreach ( $keys as $k ) {
+		if ( ! empty( $_SERVER[$k] ) ) {
+			$output = $_SERVER[$k];
+		}
+	}
+	
+	return $output;
+}
+
+
+/**
+ * Converts a string of variable names to an array.
+ * e.g. for example, the user name defaults are REMOTE_USER, REDIRECT_REMOTE_USER, and URI_LDAP_uid. 
+ * @param str $str is the name of the variable that we're looking for 
+ * @see uri_sso_default_settings
  * @return arr
  */
-function _uri_sso_get_user_variables() {
-	$keys = _uri_sso_get_option( 'user_variables', _uri_sso_default_settings('user_variables') );
+function _uri_sso_get_user_variables( $str ) {
+	$keys = _uri_sso_get_option( $str, uri_sso_default_settings( $str ) );
 
 	if ( ! empty( $keys ) ) {
 		$keys = explode(',', $keys);
@@ -157,7 +182,7 @@ function _uri_sso_get_user_variables() {
  */
 function _uri_sso_create_user($username) {
 	$email = _uri_sso_get_email( $username );
-	$role = _uri_sso_get_settings( 'default_role', _uri_sso_default_settings('default_role') );
+	$role = uri_sso_get_settings( 'default_role' );
 	
 	$user_metadata = _uri_sso_get_name();
 	
@@ -207,19 +232,9 @@ function _uri_sso_get_email( $username ) {
  * @return arr
  */
 function _uri_sso_get_name() {
-
-	$first_name_variable = _uri_sso_get_settings( 'first_name_variable', _uri_sso_default_settings('first_name_variable') );
-	$last_name_variable = _uri_sso_get_settings( 'last_name_variable', _uri_sso_default_settings('last_name_variable') );
-
 	return array(
-		'first_name' => isset( $_SERVER[$first_name_variable] ) ? $_SERVER[$first_name_variable] : '',
-		'last_name' => isset( $_SERVER[$last_name_variable] ) ? $_SERVER[$last_name_variable] : '',
-//		$_SERVER['URI_LDAP_displayname'] // John
-// 		$_SERVER['URI_LDAP_givenname'] // John D
-// 		$_SERVER['URI_LDAP_sn'] // Pennypacker
-// 		$_SERVER['URI_LDAP_departmentname'] // Communications & Marketing
-// 		$_SERVER['URI_LDAP_telephonenumber'] // (401)874-4890
-// 		$_SERVER['URI_LDAP_employeetype'] // staff
+		'first_name' => _uri_sso_get_environment_variable( 'first_name_variable' ),
+		'last_name' => _uri_sso_get_environment_variable( 'last_name_variable' ),
 	);
 }
 
