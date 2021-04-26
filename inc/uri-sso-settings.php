@@ -209,20 +209,27 @@ function uri_sso_display_network_options_page() {
 <?php
 	}
 
- 
+/**
+ * Handles submissions from the network settings.
+ */
 function uri_sso_save_network_settings() {
- 
-	check_admin_referer( 'uri-sso', 'uri_sso_validate' ); // Nonce security check
-	
-	$input = uri_sso_sanitize_settings( $_POST['uri_sso'] );
-	
+ 	check_admin_referer( 'uri-sso', 'uri_sso_validate' ); // Nonce security check
+	$input = uri_sso_sanitize_settings( $_POST['uri_sso'] );	
 	update_site_option( 'uri_sso', $input );
-	
 	wp_redirect( add_query_arg( array( 'page' => 'uri-sso', 'updated' => TRUE ), network_admin_url( 'admin.php' ) ) );
 	exit;
 }
 add_action( 'network_admin_edit_uri-sso', 'uri_sso_save_network_settings' );
 
+/**
+ * Displays a 'settings updated' message on the network settings screen.
+ */
+function uri_sso_custom_notices() {
+	if( isset( $_GET['page'] ) && 'uri-sso' === $_GET['page'] && isset( $_GET['updated'] )  ) {
+		echo '<div id="message" class="updated notice is-dismissible"><p>URI SSO Settings have been updated.</p><button type="button" class="notice-dismiss"><span class="screen-reader-text">Dismiss this notice.</span></button></div>';
+	} 
+}
+add_action( 'network_admin_notices', 'uri_sso_custom_notices' );
 
 
 
