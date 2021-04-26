@@ -223,7 +223,7 @@ function _uri_sso_default_role_field() {
  * Display the first name field.
  */
 function _uri_sso_first_name_variable_field() {
-	$help_text = 'The <code>$_SERVER</code> variable to determine the first name.<br />  
+	$help_text = 'A comma-separated list of <code>$_SERVER</code> variables to determine the first name.<br />  
 	Default: <code>' .  uri_sso_default_settings('first_name_variable') . '</code><br />';
 	echo _get_text_field( 'first_name_variable', $help_text );
 }
@@ -232,7 +232,7 @@ function _uri_sso_first_name_variable_field() {
  * Display the last name field.
  */
 function _uri_sso_last_name_variable_field() {
-	$help_text = 'The <code>$_SERVER</code> variable to determine the last name.<br />  
+	$help_text = 'A comma-separated list of <code>$_SERVER</code> variables to determine the last name.<br />  
 	Default: <code>' .  uri_sso_default_settings('last_name_variable') . '</code><br />';
 	echo _get_text_field( 'last_name_variable', $help_text );
 }
