@@ -5,6 +5,11 @@
  * Author: John Pennypacker <john@pennypacker.net>
  */
 
+// Block direct requests
+if ( ! defined( 'ABSPATH' ) ) {
+	die( '-1' );
+}
+
 // remove default WP auth filters
 remove_all_filters( 'authenticate' );
 

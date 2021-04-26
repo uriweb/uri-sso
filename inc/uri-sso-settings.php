@@ -5,6 +5,11 @@
  * Author: John Pennypacker <john@pennypacker.net>
  */
 
+// Block direct requests
+if ( ! defined( 'ABSPATH' ) ) {
+	die( '-1' );
+}
+
 
 /**
  * Register settings
@@ -119,6 +124,7 @@ function uri_sso_settings_page() {
 }
 add_action( 'admin_menu', 'uri_sso_settings_page' );
 
+
 /**
  * Display the options for this plugin.
  */
@@ -131,7 +137,12 @@ function uri_sso_display_options_page() {
 ?>
 <div class="wrap">
 	<h2>URI SSO Settings</h2>
-	<?php echo _uri_sso_get_instructions(); ?>
+	<p>You probably don’t need to change anything on this screen, to use the network default settings, leave these blank. <strong>Proceed with caution</strong>.</p>
+	<p>For the URL options, you can use the following tokens:</p>
+	<ul>
+		<li><code>%host%</code> - The host name, currently <code><?php echo $_SERVER['HTTP_HOST'] ?></code></li>
+		<li><code>%site%</code> - The WordPress site front page, currently <code><?php echo home_url() ?></code></li>
+	</ul>
   <form action="options.php" method="post">
     <?php
     	settings_errors();
@@ -143,6 +154,75 @@ function uri_sso_display_options_page() {
 </div>
 <?php
 	}
+
+/**
+ * Adds a network options menu item
+ */
+function uri_sso_register_network_settings_page() {
+	add_menu_page(
+		__( 'URI SSO Network Settings', 'uri' ),
+		'URI SSO',
+		'manage_options',
+		'uri-sso',
+		'uri_sso_display_network_options_page',
+		'dashicons-admin-network',
+		90
+	);
+}
+add_action( 'network_admin_menu', 'uri_sso_register_network_settings_page' );
+
+/**
+ * Display the network options for this plugin.
+ */
+function uri_sso_display_network_options_page() {
+	if ( ! current_user_can('manage_options') ) {
+		wp_die( __( 'You do not have sufficient permissions to access this page.' ) );
+	}
+	$output = '
+	';
+?>
+<div class="wrap">
+	<h2>URI SSO Network Settings</h2>
+	<p>These settings are used as defaults across the entire network, but individual sites may override them.</p>
+	<p>For the URL options, you can use the following tokens:</p>
+	<ul>
+		<li><code>%host%</code> - The host name, currently <code><?php echo $_SERVER['HTTP_HOST'] ?></code></li>
+		<li><code>%site%</code> - The WordPress site front page, currently <code><?php echo home_url() ?></code></li>
+	</ul>
+	<?php
+		$action = esc_url( 
+			add_query_arg( 
+				'action', 
+				'uri-sso', 
+				network_admin_url( 'edit.php' ) 
+			) 
+		);
+		echo '<form action="' . $action . '" method="post">';
+		wp_nonce_field( 'uri-sso', 'uri_sso_validate' );
+// 		settings_errors();
+		settings_fields('uri_sso');
+ 		do_settings_sections('uri_sso');
+		submit_button( 'Save Settings' );
+	?>
+  </form>
+</div>
+<?php
+	}
+
+ 
+function uri_sso_save_network_settings() {
+ 
+	check_admin_referer( 'uri-sso', 'uri_sso_validate' ); // Nonce security check
+	
+	$input = uri_sso_sanitize_settings( $_POST['uri_sso'] );
+	
+	update_site_option( 'uri_sso', $input );
+	
+	wp_redirect( add_query_arg( array( 'page' => 'uri-sso', 'updated' => TRUE ), network_admin_url( 'admin.php' ) ) );
+	exit;
+}
+add_action( 'network_admin_edit_uri-sso', 'uri_sso_save_network_settings' );
+
 
 
 
@@ -235,18 +315,4 @@ function _uri_sso_last_name_variable_field() {
 	$help_text = 'A comma-separated list of <code>$_SERVER</code> variables to determine the last name.<br />  
 	Default: <code>' .  uri_sso_default_settings('last_name_variable') . '</code><br />';
 	echo _get_text_field( 'last_name_variable', $help_text );
-}
-
-/**
- * Display the instructions
- */
-function _uri_sso_get_instructions() {
-	$text = '
-		<p>You probably don’t need to change anything on this screen, each site will use the network default. <strong>Proceed with caution</strong>.</p>
-		<p>For the URL options, you can use the following tokens:</p>
-		<ul>
-			<li><code>%host%</code> - The host name, currently <code>' . $_SERVER['HTTP_HOST'] . '</code></li>
-			<li><code>%site%</code> - The WordPress site front page, currently <code>' . home_url() . '</code></li>
-		</ul>';
-	return $text;
 }

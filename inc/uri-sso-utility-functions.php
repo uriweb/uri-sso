@@ -5,6 +5,10 @@
  * Author: John Pennypacker <jpennypacker@uri.edu>
  */
 
+// Block direct requests
+if ( ! defined( 'ABSPATH' ) ) {
+	die( '-1' );
+}
 
 
 /**
@@ -103,7 +107,7 @@ function _uri_sso_get_login_url() {
 
 /**
  * Wrapper for get_option.
- * queries the network value first, if empty, queries the local value
+ * queries the local value, if empty, returns the network value
  * @see uri_sso_get_settings()
  * @param str $key the option name
  * @param str $default a default value
@@ -111,8 +115,22 @@ function _uri_sso_get_login_url() {
  */
 function _uri_sso_get_option( $key, $default=FALSE ) {
 	$value = get_option( $key, $default );
-	if ( $default === $value ) {
-		$value = get_network_option( NULL, $key, $default );
+	
+	if( is_multisite() ) {
+// 		@todo: implement a network-wide set of values
+// 		if ( $default === $value ) {
+// 			$value = get_network_option( NULL, $key, $default );
+// 		}
+		if ( $default === $value ) {
+			$value = get_site_option( $key, $default );
+		}
+
+
+		// still no value
+		if ( $default === $value ) {
+			get_blog_option(get_network()->site_id, $key, $default);
+		}
+	
 	}
 	return $value;
 }

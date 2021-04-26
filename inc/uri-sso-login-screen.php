@@ -4,6 +4,11 @@
  * Author: Brandon Fuller <bjcfuller@uri.edu>
  */
 
+// Block direct requests
+if ( ! defined( 'ABSPATH' ) ) {
+	die( '-1' );
+}
+
 /**
  * Include css and js
  */
