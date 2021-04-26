@@ -24,7 +24,7 @@ function uri_sso_login_message( $message ) {
 	if ( ! is_wp_error( $username ) ) {
 		_uri_sso_has_session_css();
 		add_filter( 'gettext', '_uri_sso_change_login_button', 20, 3 );
-		return '<p>Hi, <span class="username">' . $username . '</span>. You‘re logged in with single sign on, but not logged into WordPress.</p>';
+		return '<p>Hi, <span class="username">' . $username . '</span>. You‘re logged in with single sign on, but not logged into WordPress.<br><br></p>';
 	} else {
 		// echo '<pre>', print_r($_SERVER, TRUE), '</pre>';
 		// return 'Uh oh, you are not logged in with SSO.';
@@ -36,17 +36,20 @@ add_filter( 'login_message', 'uri_sso_login_message' );
 
 
 /**
- * Modify the custom styles messages on the log in screen
+ * Modify the custom messages on the log in screen
  */
 function uri_sso_login_messages( $messages ) {
 	if ( '%09You+are+now+logged+out.%3Cbr+%2F%3E%0A' == urlencode( $messages ) ) {
-		$messages = "\t" . 'You are now logged out of WordPress.<br />' . "\n";
+		$messages = "\t" . 'You are logged out of WordPress.<br />' . "\n";
 
 		if ( ! is_wp_error( _uri_sso_check_remote_user() ) ) {
 			$return = urlencode( home_url() );
 			$messages .= '<a href="https://staging.web.uri.edu/mellon/logout?ReturnTo=' . $return . '">Log out of the web server</a>.';
 		}
 	}
+	// this hides the "you're now logged out" message 
+	// in addition to our customized log out of everywhere message
+	$messages .= '<style>p.message { display: none; }</style>';
 	return $messages;
 }
 add_filter( 'login_messages', 'uri_sso_login_messages', 20, 1 );

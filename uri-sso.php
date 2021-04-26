@@ -3,7 +3,7 @@
  * Plugin Name: URI SSO
  * Plugin URI: http://www.uri.edu
  * Description: authenticate users against URI's SSO implementation
- * Version: 0.1
+ * Version: 1.0
  * Author: URI Web Communications
  * Author URI: 
  *
