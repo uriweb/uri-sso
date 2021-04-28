@@ -25,16 +25,22 @@ define( 'URI_SSO_URL', str_replace('/inc', '/', plugins_url( 'inc', __FILE__ ) )
 // include the convenience functions
 include_once( URI_SSO_PATH . 'inc/uri-sso-utility-functions.php' );
 
-// include the convenience functions
+// include the settings
 include_once( URI_SSO_PATH . 'inc/uri-sso-settings.php' );
 
-// include the log in screen customizations
-include_once( URI_SSO_PATH . 'inc/uri-sso-login-screen.php' );
-
 // include the authentication customizations, is the setting is set
-if ( uri_sso_get_settings( 'use_sso' ) ) {
+if ( uri_sso_get_settings() ) {
+	// include the log in screen customizations
+	include_once( URI_SSO_PATH . 'inc/uri-sso-login-screen.php' );
 	include_once( URI_SSO_PATH . 'inc/uri-sso-authentication.php' );
 }
 
 
+/**
+ * Handles deactivation.
+ */
+function uri_sso_deactivate() {
+  delete_option( 'uri_sso' );
+}
+register_deactivation_hook( __FILE__, 'uri_sso_deactivate' );
 

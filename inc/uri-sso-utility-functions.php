@@ -12,10 +12,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 
 /**
- * Default values for the admin settings.
+ * Default values for the admin settings.  
+ * If a key is specified and it exists, that value is returned.
+ * If a key is specified but does not exist, it returns false.
+ * If no key is set, it returns the entire array.
  * @param str $key the specific setting to return
- * @return mixed if $key is set, it returns the value of that setting, 
- *  otherwise, array of all settings
+ * @return mixed
  */
 function uri_sso_default_settings( $key='' ) {
 	$default_settings = array(
@@ -27,7 +29,7 @@ function uri_sso_default_settings( $key='' ) {
 		'first_name_variable' => 'URI_AZURESSO_uri_givenname, URI_LDAP_displayname',
 		'last_name_variable' => 'URI_AZURESSO_uri_surname, URI_LDAP_sn',
 	);
-	
+
 	if ( ! empty ( $key ) ) {
 		if( array_key_exists( $key, $default_settings ) ) {
 			return $default_settings[$key];
@@ -45,11 +47,27 @@ function uri_sso_default_settings( $key='' ) {
  * @return mixed if $key is set, it returns the value of that setting, 
  *  otherwise, array of all settings
  */
-function uri_sso_get_settings( $key, $default=NULL ) {
+function uri_sso_get_settings( $key='', $default=NULL ) {
 	if ( NULL === $default ) {
 		$default = uri_sso_default_settings( $key );
 	}
-	$settings = _uri_sso_get_option( 'uri_sso', uri_sso_default_settings() );
+	$settings = get_option( 'uri_sso', $default );
+
+	if ( is_multisite() ) {
+		// local settings are meant to override site settings, 
+		// but if they're blank, use the network settings.  merge with network settings.
+		$site_settings = get_site_option( 'uri_sso', $default );
+		if ( is_array( $settings ) ) {
+			foreach ( $settings as $k => $v ) {
+				if ( '' === $settings[$k] ) {
+					$settings[$k] = $site_settings[$k];
+				}
+			}
+		} else {
+			$settings = $site_settings;
+		}
+	}
+
 	if ( ! empty ( $key ) ) {
 		if( array_key_exists( $key, $settings ) ) {
 			return $settings[$key];
@@ -60,6 +78,7 @@ function uri_sso_get_settings( $key, $default=NULL ) {
 		return $settings;
 	}
 }
+
 
 
 /**
@@ -103,39 +122,6 @@ function _uri_sso_get_login_url() {
 
 	return $url . $return_to;
 }
-
-
-/**
- * Wrapper for get_option.
- * queries the local value, if empty, returns the network value
- * @see uri_sso_get_settings()
- * @param str $key the option name
- * @param str $default a default value
- * @return mixed
- */
-function _uri_sso_get_option( $key, $default=FALSE ) {
-	$value = get_option( $key, $default );
-	
-	if( is_multisite() ) {
-// 		@todo: implement a network-wide set of values
-// 		if ( $default === $value ) {
-// 			$value = get_network_option( NULL, $key, $default );
-// 		}
-		if ( $default === $value ) {
-			$value = get_site_option( $key, $default );
-		}
-
-
-		// still no value
-		if ( $default === $value ) {
-			get_blog_option(get_network()->site_id, $key, $default);
-		}
-	
-	}
-	return $value;
-}
-
-
 
 
 /**
@@ -184,7 +170,7 @@ function _uri_sso_get_environment_variable( $key, $default=NULL ) {
  * @return arr
  */
 function _uri_sso_get_user_variables( $str ) {
-	$keys = _uri_sso_get_option( $str, uri_sso_default_settings( $str ) );
+	$keys = uri_sso_get_settings( $str );
 
 	if ( ! empty( $keys ) ) {
 		$keys = explode(',', $keys);

@@ -137,7 +137,9 @@ function uri_sso_display_options_page() {
 ?>
 <div class="wrap">
 	<h2>URI SSO Settings</h2>
-	<p>You probably don’t need to change anything on this screen, to use the network default settings, leave these blank. <strong>Proceed with caution</strong>.</p>
+	<?php if ( is_multisite() ): ?>
+	<p>You probably don’t need to change anything on this screen, any changes here will override the network defaults, leave a field blank to reset it. <strong>Proceed with caution</strong>.</p>
+	<?php endif; ?>
 	<p>For the URL options, you can use the following tokens:</p>
 	<ul>
 		<li><code>%host%</code> - The host name, currently <code><?php echo $_SERVER['HTTP_HOST'] ?></code></li>
