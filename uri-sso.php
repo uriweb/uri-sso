@@ -1,11 +1,11 @@
 <?php
 /**
  * Plugin Name: URI SSO
- * Plugin URI: http://www.uri.edu
+ * Plugin URI: https://www.uri.edu/wordpress/software/
  * Description: authenticate users against URI's SSO implementation
  * Version: 1.0
  * Author: URI Web Communications
- * Author URI: 
+ * Author URI: https://web.uri.edu/external-relations/contact-us/#web
  *
  * @author: John Pennypacker <jpennypacker@uri.edu>
  * @author: Brandon Fuller <bjcfuller@uri.edu>
